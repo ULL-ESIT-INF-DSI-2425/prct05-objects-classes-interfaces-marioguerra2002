@@ -1,11 +1,11 @@
-enum PokemonType {
+export enum PokemonType {
   Fuego = 'Fuego',
   Agua = 'Agua',
   Hierba = 'Hierba',
   Electrico = 'Electrico',
 }
 
-interface PokemonParts {
+export interface PokemonParts {
   name: string;
   weight: number;
   height: number;
@@ -16,7 +16,7 @@ interface PokemonParts {
   hp: number;
 }
 
-class Pokemon implements PokemonParts {
+export class Pokemon implements PokemonParts {
   constructor (
     public name: string,
     public weight: number,
@@ -29,7 +29,7 @@ class Pokemon implements PokemonParts {
   ) {}
 }
 
-class Pokedex {
+export class Pokedex {
   private pokemons: Pokemon[] = [];
 
   addPokemon(pokemon: Pokemon): void {
@@ -92,4 +92,80 @@ class Pokedex {
 
 
 }
+
+export class Combat {
+  constructor(
+    public pokemon1: Pokemon,
+    public pokemon2: Pokemon
+  ) {}
+  private efectivenessMatrix: Map<PokemonType, Map<PokemonType, number>> = new Map([
+    [PokemonType.Fuego, new Map([
+      [PokemonType.Fuego, 1],
+      [PokemonType.Agua, 0.5],
+      [PokemonType.Hierba, 2],
+      [PokemonType.Electrico, 1]
+    ])],
+    [PokemonType.Agua, new Map([
+      [PokemonType.Fuego, 2],
+      [PokemonType.Agua, 1],
+      [PokemonType.Hierba, 0.5],
+      [PokemonType.Electrico, 0.5]
+    ])],
+    [PokemonType.Hierba, new Map([
+      [PokemonType.Fuego, 0.5],
+      [PokemonType.Agua, 2],
+      [PokemonType.Hierba, 1],
+      [PokemonType.Electrico, 1]
+    ])],
+    [PokemonType.Electrico, new Map([
+      [PokemonType.Fuego, 1],
+      [PokemonType.Agua, 2],
+      [PokemonType.Hierba, 1],
+      [PokemonType.Electrico, 1]
+    ])]
+  ]);
+  // lo pongo publico para poder hacer las pruebas
+  public getEfectiveness(pokemon1: Pokemon, pokemon2: Pokemon): number | undefined {
+    return this.efectivenessMatrix.get(pokemon1.type)?.get(pokemon2.type)?? undefined; // ?? 1 es para que si no encuentra el valor devuelva 1 y ? es para que si no encuentra el valor devuelva undefined
+  }
+  public calculateDamage(attacker: Pokemon, defender: Pokemon): number {
+    const effectiveness = this.getEfectiveness(attacker, defender);
+    if (effectiveness === undefined) {
+      throw new Error('No se ha encontrado la efectividad');
+    }
+    let damage: number = 50 * (attacker.attack / defender.defense) * effectiveness;
+
+    return parseFloat(damage.toFixed(2));
+  }
+  start(): void { // void porque al final se va a hacer en cada ronda un console.log
+    let attacker = this.pokemon1;
+    let defender = this.pokemon2;
+    console.log(`Comienza el combate entre ${attacker.name} y ${defender.name}`);
+    while (attacker.hp > 0 && defender.hp > 0) {
+      const damage = this.calculateDamage(attacker, defender);
+      // calculo el daño en cada ronda en función del atacante y el defensor (sus tipos y stats)
+      defender.hp -= damage; // le resto el daño al hp del defensor
+      console.log(`${attacker.name} ataca a ${defender.name} y le hace ${damage} de daño`);
+      if (defender.hp <= 0) {
+        console.log(`${defender.name} no tiene vida`);
+        console.log(`${defender.name} ha sido derrotado`);
+        console.log(`${attacker.name} ha ganado el combate`);
+        break;
+      }
+      console.log(`${defender.name} tiene ${defender.hp} de vida`);
+      
+      [attacker, defender] = [defender, attacker]; // intercambio de valores
+    }
+  }
+}
+
+const pikachu = new Pokemon("Pikachu", 6, 4, PokemonType.Electrico, 55, 40, 90, 35);
+const bulbasaur = new Pokemon("Bulbasaur", 6.9, 7, PokemonType.Hierba, 49, 49, 45, 110);
+
+const pokedex = new Pokedex();
+pokedex.addPokemon(pikachu);
+pokedex.addPokemon(bulbasaur);
+
+const combat = new Combat(pikachu, bulbasaur);
+combat.start();
 
